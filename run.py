@@ -24,7 +24,7 @@ def main():
         cbr = cbr.CBRecord()
         while True:
             cbr.do_cycle()
-            time.sleep(60)
+            time.sleep(cbr.cbr_config['crtimer'])
     except KeyboardInterrupt:
         try:
             cbr.kill_processes()

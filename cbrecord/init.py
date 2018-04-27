@@ -83,7 +83,11 @@ def init_config_loading(cbr):
 
     if not os.path.exists(file):
         with open(file, 'w+') as f:
-            f.write("[User]\nusername=john\npassword=johnpw\n\n" +
+            f.write("[User]\nusername=\npassword=\n\n" +
+                    "[Settings]\n" +
+                    "# Cycle repeat timer in seconds (default: 60, " +
+                    "minimum: 30)\n" +
+                    "crtimer=60\n\n" +
                     "[FFmpeg]\nenable=false\n" +
                     "flags=-c:v libx264 -c:a copy -bsf:a aac_adtstoasc")
         print("You need to set your login information.")
@@ -94,6 +98,14 @@ def init_config_loading(cbr):
         config_parser.read(const.CONFIG_DIR + const.CONFIG_FN)
         cbr.cbr_config['username'] = config_parser.get('User', 'username')
         cbr.cbr_config['password'] = config_parser.get('User', 'password')
+
+        try:
+            crtimer = int(config_parser.get('Settings', 'crtimer'))
+            if crtimer < 30 or crtimer > 86400:
+                crtimer = 60
+            cbr.cbr_config['crtimer'] = crtimer
+        except (ValueError, configparser.NoSectionError):
+            cbr.cbr_config['crtimer'] = 60
 
         try:
             cbr.cbr_config['ffmpeg'] = config_parser.getboolean('FFmpeg',

@@ -48,6 +48,7 @@ class CBRecord:
         self.cbr_config = {
             'username': None,
             'password': None,
+            'crtimer': None,
             'ffmpeg': None,
             'ffmpeg-flags': None
         }
@@ -66,7 +67,9 @@ class CBRecord:
         url = b64decode(b'aHR0cHM6Ly9jaGF0dXJiYXRlLmNvbS8=').decode("utf-8")
         ws.make_request(url, self, True)
 
-        log("Cycle repeat time: 60 seconds", self)
+        log("Cycle repeat timer: {} seconds".format(
+            self.cbr_config['crtimer']),
+            self)
 
         log("Listening to followed models", self, 20)
 
