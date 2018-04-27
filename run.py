@@ -36,10 +36,10 @@ def main():
         print("Requirements not satisfied.")
         print("Run 'pip install -r requirements.txt'.")
         raise SystemExit(1)
-    '''except Exception as ex:
+    except Exception as ex:
         print("An unexpected error occured.")
         print("Error message: " + str(ex))
-        raise SystemExit(1)'''
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
