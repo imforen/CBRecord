@@ -1,10 +1,12 @@
 """Module for constant variable storage."""
 
+from pathlib import Path
+
 # Path of the configuration directory
 CONFIG_DIR = './config/'
 
 # Path of the logs directory
-LOGS_DIR = './logs/'
+LOGS_DIR = Path('logs')
 
 # Configuration filename
 CONFIG_FN = 'config.ini'

@@ -8,6 +8,7 @@ Fuctions:
 """
 
 import json
+import logging
 import os
 import requests
 import time
@@ -16,7 +17,6 @@ from base64 import b64decode
 from bs4 import BeautifulSoup
 
 from cbrecord import const
-from cbrecord.util import log
 
 
 def make_request(url, cbr, initial_login=False):
@@ -30,6 +30,7 @@ def make_request(url, cbr, initial_login=False):
     Returns:
         - string: The HTML code requested from the given url.
     """
+    logger = logging.getLogger(__name__ + ".make_request")
     request = None
     cookie = {}
     already_logged_in = True
@@ -39,37 +40,35 @@ def make_request(url, cbr, initial_login=False):
             with open(const.CONFIG_DIR + const.COOKIE_FN, 'r') as f:
                 cookie = requests.utils.cookiejar_from_dict(json.load(f))
     except json.JSONDecodeError:
-        log("Cookie file error", cbr, 30)
+        logger.warning("Cookie file error.")
 
     while request is None:
         try:
             request = cbr.session.get(url, timeout=10, cookies=cookie)
             request.raise_for_status()
         except requests.exceptions.HTTPError as ex:
-            log("An HTTP error occured", cbr, 30)
-            log("Error message: ", cbr, 10, ex)
+            logger.warning("An HTTP error occured.")
+            logger.debug("HTTPError: {}.".format(ex))
             print("Retrying in 10 minutes.")
             request = None
             time.sleep(600)
         except requests.exceptions.ConnectionError as ex:
-            log("No internet connection", cbr, 30)
-            log("Error message: ", cbr, 10, ex)
+            logger.warning("No internet connection.")
+            logger.debug("ConnectionError: {}.".format(ex))
             print("Retrying in 10 minutes.")
             request = None
             time.sleep(600)
         except requests.exceptions.Timeout as ex:
-            log("Connection timeout", cbr, 30)
-            log("Error message: ", cbr, 10, ex)
+            logger.warning("Connection timeout.")
+            logger.debug("Timeout: {}.".format(ex))
             print("Retrying in 10 minutes.")
             request = None
             time.sleep(600)
         except requests.exceptions.TooManyRedirects as ex:
-            log("Too many redirects", cbr, 40)
-            log("Error message: ", cbr, 10, ex)
+            logger.exception("Too many redirects.")
             raise SystemExit(1)
         except requests.exceptions.RequestException as ex:
-            log("An unexpected HTTP request error occured", 40, "", cbr)
-            log("Error message: ", 10, ex, cbr)
+            logger.exception("An unexpected HTTP request error occured.")
             raise SystemExit(1)
 
         while (request is not None) and (is_logged_in(request.text) is False):
@@ -78,7 +77,7 @@ def make_request(url, cbr, initial_login=False):
             request = cbr.session.get(url, timeout=4, cookies=cookie)
 
     if (already_logged_in is True) and (initial_login is True):
-        log("Already logged in", cbr, 20)
+        logger.info("Already logged in.")
     return request.text
 
 
@@ -105,6 +104,7 @@ def login(cbr):
     Parameters:
         - cbr (object): The run session object (CBRecord class).
     """
+    logger = logging.getLogger(__name__ + ".login")
     url = b64decode(b'aHR0cHM6Ly9jaGF0dXJiYXRlLmNvbS' +
                     b'9hdXRoL2xvZ2luLz9uZXh0PS8=').decode("utf-8")
     result = cbr.session.get(url)
@@ -130,9 +130,11 @@ def login(cbr):
     if is_logged_in(result.text) is True:
         with open(const.CONFIG_DIR + const.COOKIE_FN, 'w+') as f:
             json.dump(requests.utils.dict_from_cookiejar(result.cookies), f)
-        log("Login successful as: ", cbr, 20, cbr.cbr_config['username'])
+        logger.info("Login successful as: {}".format(
+            cbr.cbr_config['username']))
     else:
-        log("Login failed to: ", cbr, 30, cbr.cbr_config['username'])
+        logger.warning("Login failed as: {}".format(
+            cbr.cbr_config['username']))
         print("Wrong user credentials or too many login attempts.")
         raise SystemExit(0)
 
@@ -146,6 +148,7 @@ def get_models(cbr):
     Returns:
         - list: A list of online followed models who are free to watch.
     """
+    logger = logging.getLogger(__name__ + ".get_models")
     url = b64decode(b'aHR0cHM6Ly9jaGF0dXJiYXR' +
                     b'lLmNvbS9mb2xsb3dlZC1jYW1zLw==').decode("utf-8")
     html = make_request(url, cbr)
@@ -170,7 +173,7 @@ def get_models(cbr):
 
             models.append(model_name)
     except (AttributeError, KeyError):
-        log("No followed models error", cbr, 40)
+        logger.error("No followed models error.")
         raise SystemExit(1)
 
     return models
