@@ -57,7 +57,7 @@ class CBRecord:
         logger.info("HTTP session created.")
 
         url = b64decode(b'aHR0cHM6Ly9jaGF0dXJiYXRlLmNvbS8=').decode("utf-8")
-        ws.make_request(url, self, True)
+        ws.make_request(self, url, True)
 
         logger.info("Cycle repeat timer: {} seconds.".format(
             self.cbr_config['crtimer']
