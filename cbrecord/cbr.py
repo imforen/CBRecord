@@ -24,16 +24,14 @@ class CBRecord:
     Object variables:
         - cbr_config: Configuration dictionary.
         - session: Web session object.
-        - tasks: Information holder of Streamlink and FFmpeg tasks.
+        - record_tasks: Information holder of record tasks.
         - cycle: Counter of the run session cycles.
 
     Functions:
         - __init__: Constructor.
         - do_cycle: Do a cycle.
-        - clean_tasks: Clean tasks list, remove ended processes.
-        - streamlink_ended: Handle an ended Streamlink task.
-        - run_ffmpeg: Run FFmpeg to re-encode the video.
-        - ffmpeg_ended: Handle an ended FFmpeg task.
+        - clean_record_tasks: Clean record tasks list, remove ended processes.
+        - record_ended: Handle an ended record task.
         - process_models: Process model if isn't already being recorded.
         - is_recording: Check if model is already being recorded.
         - record: Start recording.
@@ -47,15 +45,13 @@ class CBRecord:
             'username': None,
             'password': None,
             'crtimer': None,
-            'ffmpeg': None,
-            'ffmpeg-flags': None
         }
         self.session = None
-        self.tasks = []
+        self.record_tasks = []
         self.cycle = 0
 
         init.startup_init(self)
-        util.check_sl_ffmpeg(self)
+        util.check_streamlink(self)
 
         self.session = requests.Session()
         logger.info("HTTP session created.")
@@ -73,23 +69,20 @@ class CBRecord:
         """Do a cycle."""
         self.cycle += 1
 
-        self.clean_tasks()
+        self.clean_record_tasks()
 
         modelList = ws.get_models(self)
         self.process_models(modelList)
 
-    def clean_tasks(self):
-        """Clean tasks list, remove ended processes."""
-        logger = logging.getLogger(__name__ + ".clean_tasks")
+    def clean_record_tasks(self):
+        """Clean record tasks list, remove ended processes."""
+        logger = logging.getLogger(__name__ + ".clean_record_tasks")
         remove = []
 
-        for task in self.tasks:
+        for task in self.record_tasks:
             if task['process'].poll() is not None:
                 remove.append(task['id'])
-                if task['type'] == 'streamlink':
-                    self.streamlink_ended(task)
-                elif task['type'] == 'ffmpeg':
-                    self.ffmpeg_ended(task)
+                self.record_ended(task)
             else:
                 if self.cycle % 2 == 0:
                     size = os.path.getsize(task['file'])
@@ -97,82 +90,32 @@ class CBRecord:
                         remove.append(task['id'])
                         task['process'].terminate()
                         logger.debug("Process stuck: {}.".format(task['id']))
-                        self.streamlink_ended(task)
+                        self.record_ended(task)
                     else:
                         task['size'] = size
 
         if len(remove) > 0:
             logger.debug("Ended tasks to be removed: {}.".format(remove))
-            temp = [item for item in self.tasks if item['id'] not in remove]
-            self.tasks = temp
+            temp = [item for item in self.record_tasks
+                    if item['id'] not in remove]
+            self.record_tasks = temp
 
-    def streamlink_ended(self, task):
-        """Handle an ended Streamlink task.
+    def record_ended(self, task):
+        """Handle an ended record task.
 
         Parameters:
             - task (dict): Informations about the ended task.
         """
-        logger = logging.getLogger(__name__ + ".streamlink_ended")
+        logger = logging.getLogger(__name__ + ".record_ended")
 
         logger.info("Record END: {}:{}.".format(task['id'], task['model']))
 
         if os.path.isfile(task['file']):
-            if os.path.getsize(task['file']) > 0:
-                if self.cbr_config['ffmpeg'] is True:
-                    self.run_ffmpeg(task)
-            else:
+            if os.path.getsize(task['file']) == 0:
+                os.remove(task['file'])
                 logger.debug("Removed 0 size recording: {}:{}.".format(
                     task['id'],
                     task['file']))
-                os.remove(task['file'])
-
-    def run_ffmpeg(self, task):
-        """Run FFmpeg to re-encode the video.
-
-        Parameters:
-            - task (dict): Informations about the ended task.
-        """
-        logger = logging.getLogger(__name__ + ".run_ffmpeg")
-        ffmpeg_file = task['file'].replace(".ts", ".mp4")
-        cmd = [
-            ['ffmpeg', '-nostats', '-loglevel', 'quiet', '-y', '-i',
-             task['file']],
-            self.config['ffmpeg-flags'].split(),
-            [ffmpeg_file]
-        ]
-        cmd = [item for sublist in cmd for item in sublist]
-
-        ffmpeg_process = subprocess.Popen(cmd,
-                                          shell=False,
-                                          stdout=subprocess.PIPE,
-                                          stderr=subprocess.PIPE)
-
-        self.tasks.append({
-            'id': ffmpeg_process.pid,
-            'model': task['model'],
-            'process': ffmpeg_process,
-            'type': 'ffmpeg',
-            'file': task['file'],
-            'ffmpeg_file': ffmpeg_file
-        })
-
-        logger.info("Encode START: {}:{}.".format(ffmpeg_process.pid,
-                                                  task['model']))
-
-    def ffmpeg_ended(self, task):
-        """Handle an ended FFmpeg task.
-
-        Parameters:
-            - task (dict): Informations about the ended task.
-        """
-        logger = logging.getLogger(__name__ + ".ffmpeg_ended")
-
-        if task['process'].poll() == 0:
-            logger.info("Encode END: {}:{}.".format(task['id'], task['model']))
-            os.remove(task['file'])
-        else:
-            logger.error("Encode ERROR: {}:{}.".format(task['id'],
-                                                       task['model']))
 
     def process_models(self, models):
         """Process model if isn't already being recorded.
@@ -191,8 +134,8 @@ class CBRecord:
         Parameters:
             - model (string): Model to check.
         """
-        for task in self.tasks:
-            if task['model'] == model and task['type'] == 'streamlink':
+        for task in self.record_tasks:
+            if task['model'] == model:
                 return True
         return False
 
@@ -233,11 +176,10 @@ class CBRecord:
             logger.debug("Can not start record: {}:{}.".format(process.pid,
                                                                model))
         except subprocess.TimeoutExpired as ex:
-            self.tasks.append({
+            self.record_tasks.append({
                 'id': process.pid,
                 'model': model,
                 'process': process,
-                'type': 'streamlink',
                 'file': file,
                 'size': 0
             })
@@ -246,6 +188,6 @@ class CBRecord:
 
     def kill_processes(self):
         """Kill all process in the tasks list."""
-        for task in self.tasks:
+        for task in self.record_tasks:
             if task['process'].poll() is not None:
                 task['process'].terminate()

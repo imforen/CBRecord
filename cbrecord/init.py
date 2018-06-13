@@ -40,10 +40,7 @@ def init_config_loading(cbr):
             f.write("[User]\nusername=\npassword=\n\n" +
                     "[Settings]\n" +
                     "# Cycle repeat timer in seconds (default: 60, " +
-                    "minimum: 30)\n" +
-                    "crtimer=60\n\n" +
-                    "[FFmpeg]\nenable=false\n" +
-                    "flags=-c:v libx264 -c:a copy -bsf:a aac_adtstoasc")
+                    "minimum: 30)\ncrtimer=60")
         print("You need to set your login information.")
         raise SystemExit(0)
 
@@ -60,14 +57,6 @@ def init_config_loading(cbr):
             cbr.cbr_config['crtimer'] = crtimer
         except (ValueError, configparser.NoSectionError):
             cbr.cbr_config['crtimer'] = 60
-
-        try:
-            cbr.cbr_config['ffmpeg'] = config_parser.getboolean('FFmpeg',
-                                                                'enable')
-            cbr.cbr_config['ffmpeg-flags'] = config_parser.get('FFmpeg',
-                                                               'flags')
-        except configparser.NoSectionError:
-            pass
     except (Exception, configparser.Error):
         if os.path.exists(file):
             os.remove(file)

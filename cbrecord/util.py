@@ -1,7 +1,7 @@
 """Contains utility functions.
 
 Fuctions:
-    - check_sl_ffmpeg: Check if Streamlink and FFmpeg is installed.
+    - check_streamlink: Check if Streamlink is installed.
     - create_dir: Create directory with the given path.
     - log: Send message to the logs.
 """
@@ -11,26 +11,19 @@ import os
 import whichcraft
 
 
-def check_sl_ffmpeg(cbr):
-    """Check if Streamlink and FFmpeg is installed.
+def check_streamlink(cbr):
+    """Check if Streamlink is installed.
 
     Parameters:
         - cbr (object): The run session object (CBRecord class).
     """
-    logger = logging.getLogger(__name__ + ".check_sl_ffmpeg")
+    logger = logging.getLogger(__name__ + ".check_streamlink")
 
     if whichcraft.which('streamlink') is not None:
         logger.info("Streamlink OK.")
     else:
         logger.critical("Streamlink not found.")
         print("Visit: https://streamlink.github.io/install.html.")
-        raise SystemExit(1)
-
-    if whichcraft.which('ffmpeg') is not None:
-        logger.info("FFmpeg OK.")
-    else:
-        logger.error("FFmpeg not found.")
-        print("Visit: https://www.ffmpeg.org/download.html.")
         raise SystemExit(1)
 
 
