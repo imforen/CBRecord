@@ -19,14 +19,14 @@ parent_logger = logging.getLogger('cbrecord')
 parent_logger.setLevel(logging.DEBUG)
 
 plsh = logging.StreamHandler(stream=sys.stdout)
-plshf = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+plshf = logging.Formatter("%(asctime)s: %(message)s", datefmt='%a, %H:%M:%S')
 plsh.setFormatter(plshf)
 plsh.setLevel(logging.INFO)
 parent_logger.addHandler(plsh)
 
 temporary_log_file = tempfile.TemporaryFile(mode='w+', encoding='utf8')
 tsh = logging.StreamHandler(stream=temporary_log_file)
-tshf = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+tshf = logging.Formatter("%(asctime)s [%(levelname)s] (%(name)s): %(message)s")
 tsh.setFormatter(tshf)
 tsh.setLevel(logging.DEBUG)
 parent_logger.addHandler(tsh)
@@ -91,7 +91,7 @@ def finalize_logging(LOGS_DIR):
                                mode='a',
                                encoding='utf-8')
     plfhf = logging.Formatter("%(asctime)s [%(levelname)s] " +
-                              "%(name)s: %(message)s")
+                              "(%(name)s): %(message)s")
     plfh.setFormatter(plfhf)
     plfh.setLevel(logging.DEBUG)
     # ----
@@ -109,8 +109,8 @@ def finalize_logging(LOGS_DIR):
     rlfh = logging.FileHandler(requests_log_file_path,
                                mode='a',
                                encoding='utf-8')
-    rlfhf = logging.Formatter("%(asctime)s [%(levelname)s] " +
-                              "%(name)s: %(message)s")
+    rlfhf = logging.Formatter("%(asctime)s [%(levelname)s] (%(name)s): " +
+                              "%(message)s")
     rlfh.setFormatter(rlfhf)
     rlfh.setLevel(logging.DEBUG)
     requests_logger.addHandler(rlfh)
