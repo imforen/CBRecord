@@ -233,16 +233,22 @@ def get_request(cbr, url, cookie=None):
                        "the remote server.")
         logger.debug("ConnectTimeout: {}.".format(ex))
         request = None
-        time.sleep(60)
+        time.sleep(cbr.cbr_config['crtimer'])
     except requests.exceptions.ReadTimeout as ex:
         logger.warning("The server did not send any data in the allotted " +
                        "amount of time.")
         logger.debug("ReadTimeout: {}.".format(ex))
         request = None
-        time.sleep(60)
+        time.sleep(cbr.cbr_config['crtimer'])
+    except requests.exceptions.RetryError as ex:
+        logger.warning("Custom retries logic failed.")
+        logger.debug("RetryError: {}.".format(ex))
+        request = None
+        time.sleep(cbr.cbr_config['crtimer'])
     except requests.exceptions.RequestException as ex:
-        logger.exception("There was an ambiguous exception that occurred " +
-                         "while handling your request.")
+        logger.error("There was an ambiguous exception that occurred " +
+                     "while handling your request.")
+        logger.debug("RequestException: {}.".format(ex))
         raise SystemExit(1)
 
     return request
@@ -290,16 +296,22 @@ def post_request(cbr, url, data, headers, cookie={}):
                        "the remote server.")
         logger.debug("ConnectTimeout: {}.".format(ex))
         request = None
-        time.sleep(60)
+        time.sleep(cbr.cbr_config['crtimer'])
     except requests.exceptions.ReadTimeout as ex:
         logger.warning("The server did not send any data in the allotted " +
                        "amount of time.")
         logger.debug("ReadTimeout: {}.".format(ex))
         request = None
-        time.sleep(60)
+        time.sleep(cbr.cbr_config['crtimer'])
+    except requests.exceptions.RetryError as ex:
+        logger.warning("Custom retries logic failed.")
+        logger.debug("RetryError: {}.".format(ex))
+        request = None
+        time.sleep(cbr.cbr_config['crtimer'])
     except requests.exceptions.RequestException as ex:
-        logger.exception("There was an ambiguous exception that occurred " +
-                         "while handling your request.")
+        logger.error("There was an ambiguous exception that occurred " +
+                     "while handling your request.")
+        logger.debug("RequestException: {}.".format(ex))
         raise SystemExit(1)
 
     return request
